@@ -3,8 +3,12 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from typing import Union, Callable, List
 
+from geometry import Geometry, EuclideanGeometry
+
+
 class GeometricGraph:
     coordinates: np.ndarray
+    geometry: Geometry
     graph: nx.Graph
     dist_mat: np.ndarray
     adj_mat: np.ndarray
@@ -14,7 +18,7 @@ class GeometricGraph:
             self,
             coordinates,
             dist_to_adj=Union[str, float, Callable],
-            distance: Union[str, Callable] = "euclidean",
+            geometry: Geometry = EuclideanGeometry(),
             names: List[str] = None
     ):
         """
@@ -29,10 +33,8 @@ class GeometricGraph:
         else:
             self.names = names
 
-        if distance == "euclidean":
-            self.dist_mat = np.sqrt(((coordinates.T[:, :, None] - coordinates.T[:, None, :])**2).sum(axis=0))
-        else:
-            raise NotImplementedError("")
+        self.geometry = geometry
+        self.dist_mat = geometry.distance_matrix(coordinates)
 
         if isinstance(dist_to_adj, (int, float)):
             self.adj_mat = np.astype(self.dist_mat <= dist_to_adj, int)
@@ -46,6 +48,7 @@ class GeometricGraph:
             self.graph = nx.relabel_nodes(self.graph, mapping)
 
     def plot(self, **kwargs):
-        pos = {name: coordinate for name, coordinate in zip(self.names, self.coordinates)}
+        pos_arr = self.geometry.coordinates_to_pos(self.coordinates)
+        pos = {name: p for name, p in zip(self.names, pos_arr)}
         nx.draw(self.graph, pos, with_labels=True, node_color='lightgreen', node_size=70, font_size=7, edge_color='black', **kwargs)
         plt.show()
